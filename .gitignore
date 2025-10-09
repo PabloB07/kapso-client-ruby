@@ -1,0 +1,46 @@
+# Coverage and test artifacts
+coverage/
+.coverage
+.rspec_status
+
+# Documentation
+doc/
+.yardoc/
+.yard/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Gem files
+*.gem
+Gemfile.lock
+
+# VCR cassettes (if using real API calls)
+spec/cassettes/
+
+# Temporary files
+tmp/
+.tmp/
+
+# Log files
+*.log
+
+# Bundle directory
+vendor/bundle/
+
+# Ruby version managers
+.ruby-version
+.rvmrc
+
+# Pry history
+.pry_history
+
+# Byebug history
+.byebug_history
