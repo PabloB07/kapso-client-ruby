@@ -28,7 +28,7 @@ This will create:
 - `config/initializers/kapso_client_ruby.rb` - Configuration file
 - `app/controllers/kapso_webhooks_controller.rb` - Webhook handler
 - `app/services/kapso_message_service.rb` - Service class for messaging
-- `.env.example.kapso` - Environment variables template
+- `.env.example` - Environment variables template
 - Webhook routes in `config/routes.rb`
 
 ## Manual Setup

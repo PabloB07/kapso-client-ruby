@@ -17,7 +17,7 @@ module KapsoClientRuby
         app.config.kapso.phone_number_id = nil
         app.config.kapso.business_account_id = nil
         app.config.kapso.api_host = 'https://graph.facebook.com'
-        app.config.kapso.api_version = 'v18.0'
+        app.config.kapso.api_version = 'v23.0'
         app.config.kapso.timeout = 30
         app.config.kapso.debug = false
         app.config.kapso.logger = nil
@@ -32,7 +32,7 @@ module KapsoClientRuby
           config.phone_number_id = app.config.kapso.phone_number_id || ENV['KAPSO_PHONE_NUMBER_ID']
           config.business_account_id = app.config.kapso.business_account_id || ENV['KAPSO_BUSINESS_ACCOUNT_ID']
           config.api_host = app.config.kapso.api_host || ENV.fetch('KAPSO_API_HOST', 'https://graph.facebook.com')
-          config.api_version = app.config.kapso.api_version || ENV.fetch('KAPSO_API_VERSION', 'v18.0')
+          config.api_version = app.config.kapso.api_version || ENV.fetch('KAPSO_API_VERSION', 'v23.0')
           config.timeout = app.config.kapso.timeout || ENV.fetch('KAPSO_TIMEOUT', 30).to_i
           config.debug = app.config.kapso.debug || ENV.fetch('KAPSO_DEBUG', 'false') == 'true'
           config.logger = app.config.kapso.logger || ::Rails.logger

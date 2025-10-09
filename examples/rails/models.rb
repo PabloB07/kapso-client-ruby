@@ -217,7 +217,7 @@ end
 
 # Example migration for WhatsApp messages tracking
 # 
-# class CreateWhatsappMessages < ActiveRecord::Migration[7.0]
+# class CreateWhatsappMessages < ActiveRecord::Migration[8.0]
 #   def change
 #     create_table :whatsapp_messages do |t|
 #       t.references :user, null: false, foreign_key: true
