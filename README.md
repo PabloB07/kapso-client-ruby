@@ -16,6 +16,7 @@ A comprehensive Ruby client library for the [WhatsApp Business Cloud API](https:
 - 🔍 **Debug Support**: Detailed logging and request/response tracing
 - 📚 **Type Safety**: Structured response objects and validation
 - ⚡ **Performance**: HTTP connection pooling and efficient request handling
+- 🛤️ **Rails Integration**: First-class Rails support with generators, service classes, and background jobs
 
 ## Installation
 
@@ -36,6 +37,23 @@ Or install it yourself as:
 ```bash
 $ gem install kapso-client-api
 ```
+
+### Rails Integration
+
+For Rails applications, use the built-in generator to set up everything automatically:
+
+```bash
+rails generate kapso_client_ruby:install
+```
+
+This creates:
+- Configuration initializer
+- Webhook controller
+- Service class for messaging
+- Background job examples
+- Routes for webhooks
+
+See the [Rails Integration Guide](RAILS_INTEGRATION.md) for detailed Rails-specific documentation.
 
 ## Quick Start
 

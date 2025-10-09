@@ -1,0 +1,138 @@
+# frozen_string_literal: true
+
+# Example service class for sending WhatsApp messages in a Rails application
+# This wraps the KapsoClientRuby functionality with Rails-specific features
+class KapsoMessageService
+  include ActiveModel::Model
+  include ActiveModel::Attributes
+
+  # Initialize with optional custom client
+  def initialize(client: nil)
+    @kapso_service = KapsoClientRuby::Rails::Service.new(client)
+  end
+
+  # Send a welcome message to a new user
+  # @param user [User] The user to send the message to
+  # @return [Hash] API response
+  def send_welcome_message(user)
+    return unless user.phone_number.present?
+
+    @kapso_service.send_template_message(
+      to: user.phone_number,
+      template_name: 'welcome_message',
+      language: user.preferred_language || 'en',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: user.first_name || 'there' }
+          ]
+        }
+      ]
+    )
+  rescue KapsoClientRuby::Error => e
+    Rails.logger.error "Failed to send welcome message to user #{user.id}: #{e.message}"
+    # You might want to queue for retry or notify admins
+    nil
+  end
+
+  # Send order confirmation
+  # @param order [Order] The order to confirm
+  # @return [Hash] API response
+  def send_order_confirmation(order)
+    user = order.user
+    return unless user.phone_number.present?
+
+    @kapso_service.send_template_message(
+      to: user.phone_number,
+      template_name: 'order_confirmation',
+      language: user.preferred_language || 'en',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: order.id.to_s },
+            { type: 'currency', currency: order.currency, amount_1000: order.total_cents }
+          ]
+        }
+      ]
+    )
+  rescue KapsoClientRuby::Error => e
+    Rails.logger.error "Failed to send order confirmation for order #{order.id}: #{e.message}"
+    nil
+  end
+
+  # Send a custom text message
+  # @param phone_number [String] Recipient's phone number
+  # @param message [String] The message text
+  # @return [Hash] API response
+  def send_text(phone_number:, message:)
+    @kapso_service.send_text_message(to: phone_number, text: message)
+  rescue KapsoClientRuby::Error => e
+    Rails.logger.error "Failed to send text message to #{phone_number}: #{e.message}"
+    nil
+  end
+
+  # Send a document
+  # @param phone_number [String] Recipient's phone number
+  # @param document_url [String] URL of the document
+  # @param filename [String] Optional filename
+  # @param caption [String] Optional caption
+  # @return [Hash] API response
+  def send_document(phone_number:, document_url:, filename: nil, caption: nil)
+    @kapso_service.send_media_message(
+      to: phone_number,
+      media_type: 'document',
+      media_url: document_url,
+      filename: filename,
+      caption: caption
+    )
+  rescue KapsoClientRuby::Error => e
+    Rails.logger.error "Failed to send document to #{phone_number}: #{e.message}"
+    nil
+  end
+
+  # Send test message (for development/testing)
+  def send_test_message
+    test_number = ENV['KAPSO_TEST_PHONE_NUMBER']
+    
+    unless test_number
+      puts "Set KAPSO_TEST_PHONE_NUMBER environment variable to test messaging"
+      return
+    end
+
+    result = send_text(
+      phone_number: test_number,
+      message: "Hello from <%= application_name %>! This is a test message sent at #{Time.current}."
+    )
+
+    if result
+      puts "✅ Test message sent successfully! Message ID: #{result.dig('messages', 0, 'id')}"
+    else
+      puts "❌ Failed to send test message"
+    end
+  end
+
+  # Get message delivery status
+  # @param message_id [String] The message ID
+  # @return [Hash] Status information
+  def get_message_status(message_id)
+    @kapso_service.get_message_status(message_id)
+  rescue KapsoClientRuby::Error => e
+    Rails.logger.error "Failed to get message status for #{message_id}: #{e.message}"
+    nil
+  end
+
+  # List available templates
+  # @return [Array] List of templates
+  def list_templates
+    @kapso_service.get_templates
+  rescue KapsoClientRuby::Error => e
+    Rails.logger.error "Failed to fetch templates: #{e.message}"
+    nil
+  end
+
+  private
+
+  attr_reader :kapso_service
+end

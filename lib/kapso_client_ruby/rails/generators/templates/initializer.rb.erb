@@ -1,0 +1,33 @@
+# frozen_string_literal: true
+
+# KapsoClientRuby configuration for Rails
+KapsoClientRuby.configure do |config|
+  # API credentials - set these in your environment variables
+  config.api_key = ENV['KAPSO_API_KEY']
+  config.phone_number_id = ENV['KAPSO_PHONE_NUMBER_ID']
+  config.business_account_id = ENV['KAPSO_BUSINESS_ACCOUNT_ID']
+
+  # API configuration
+  config.api_host = ENV.fetch('KAPSO_API_HOST', 'https://graph.facebook.com')
+  config.api_version = ENV.fetch('KAPSO_API_VERSION', 'v18.0')
+  config.timeout = ENV.fetch('KAPSO_TIMEOUT', 30).to_i
+
+  # Development/Debug settings
+  config.debug = Rails.env.development? || ENV.fetch('KAPSO_DEBUG', 'false') == 'true'
+  config.logger = Rails.logger
+
+  # Retry configuration
+  config.retry_on_failure = ENV.fetch('KAPSO_RETRY_ON_FAILURE', 'true') == 'true'
+  config.max_retries = ENV.fetch('KAPSO_MAX_RETRIES', 3).to_i
+end
+
+# Subscribe to Kapso events (optional)
+# ActiveSupport::Notifications.subscribe('kapso.message_received') do |name, start, finish, id, payload|
+#   Rails.logger.info "Received WhatsApp message: #{payload[:message]['id']}"
+#   # Handle incoming message
+# end
+
+# ActiveSupport::Notifications.subscribe('kapso.message_status_updated') do |name, start, finish, id, payload|
+#   Rails.logger.info "Message status updated: #{payload[:status]['id']} -> #{payload[:status]['status']}"
+#   # Handle message status update
+# end

@@ -1,0 +1,62 @@
+# frozen_string_literal: true
+
+class KapsoWebhooksController < ApplicationController
+  # Skip CSRF token verification for webhook endpoints
+  skip_before_action :verify_authenticity_token
+
+  # Webhook verification endpoint (GET)
+  # WhatsApp sends a GET request to verify your webhook URL
+  def verify
+    challenge = params['hub.challenge']
+    verify_token = params['hub.verify_token']
+    
+    # Set your verification token in environment variables
+    expected_token = ENV['KAPSO_WEBHOOK_VERIFY_TOKEN']
+    
+    if verify_token == expected_token
+      render plain: challenge, status: :ok
+    else
+      render plain: 'Forbidden', status: :forbidden
+    end
+  end
+
+  # Webhook payload endpoint (POST)
+  # WhatsApp sends webhook events here
+  def create
+    begin
+      # Verify webhook signature (optional but recommended)
+      verify_webhook_signature if ENV['KAPSO_WEBHOOK_SECRET'].present?
+      
+      # Process the webhook using the Kapso Rails service
+      service = KapsoClientRuby::Rails::Service.new
+      result = service.process_webhook(webhook_params.to_h)
+      
+      render json: { status: 'ok' }, status: :ok
+    rescue => e
+      Rails.logger.error "Webhook processing error: #{e.message}"
+      render json: { error: 'Internal server error' }, status: :internal_server_error
+    end
+  end
+
+  private
+
+  def webhook_params
+    params.permit!
+  end
+
+  def verify_webhook_signature
+    signature = request.headers['X-Hub-Signature-256']
+    return unless signature
+
+    expected_signature = calculate_signature(request.raw_post)
+    
+    unless Rack::Utils.secure_compare(signature, expected_signature)
+      raise 'Invalid webhook signature'
+    end
+  end
+
+  def calculate_signature(payload)
+    secret = ENV['KAPSO_WEBHOOK_SECRET']
+    'sha256=' + OpenSSL::HMAC.hexdigest('sha256', secret, payload)
+  end
+end
