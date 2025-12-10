@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
-require 'kapso_client_ruby'
+require 'kapso-client-ruby'
+require 'dotenv'
+
+Dotenv.load
 
 # Example 1: Basic Text Message
 puts "=== Basic Text Message ==="

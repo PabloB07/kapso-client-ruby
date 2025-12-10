@@ -49,6 +49,7 @@ module KapsoClientRuby
       @calls = nil
       @conversations = nil
       @contacts = nil
+      @flows = nil
     end
 
     # Resource accessors with lazy initialization
@@ -78,6 +79,10 @@ module KapsoClientRuby
 
     def contacts
       @contacts ||= Resources::Contacts.new(self)
+    end
+
+    def flows
+      @flows ||= Resources::Flows.new(self)
     end
 
     def kapso_proxy?

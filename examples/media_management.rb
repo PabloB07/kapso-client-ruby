@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
-require 'whatsapp_cloud_api'
+require 'kapso-client-ruby'
+require 'dotenv'
+
+Dotenv.load
 
 puts "=== Media Management Examples ==="
 

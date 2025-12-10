@@ -11,6 +11,7 @@ require_relative 'kapso_client_ruby/resources/phone_numbers'
 require_relative 'kapso_client_ruby/resources/calls'
 require_relative 'kapso_client_ruby/resources/conversations'
 require_relative 'kapso_client_ruby/resources/contacts'
+require_relative 'kapso_client_ruby/resources/flows'
 
 # Load Rails integration if Rails is available
 if defined?(Rails)

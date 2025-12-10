@@ -224,6 +224,92 @@ module KapsoClientRuby
       end
     end
 
+    # Flow structures
+    class FlowResponse
+      attr_reader :id, :name, :status, :categories, :validation_errors, :json_version
+
+      def initialize(data)
+        @id = data['id']
+        @name = data['name']
+        @status = data['status']
+        @categories = data['categories'] || []
+        @validation_errors = data['validation_errors']
+        @json_version = data['json_version']
+      end
+    end
+
+    class FlowData < FlowResponse
+      attr_reader :endpoint_uri, :preview, :whatsapp_business_account, :application
+
+      def initialize(data)
+        super(data)
+        @endpoint_uri = data['endpoint_uri']
+        @preview = data['preview']
+        @whatsapp_business_account = data['whatsapp_business_account']
+        @application = data['application']
+      end
+    end
+
+    class FlowAssetResponse
+      attr_reader :validation_errors, :success
+
+      def initialize(data)
+        @validation_errors = data['validation_errors'] || []
+        @success = data['success'] || validation_errors.empty?
+      end
+
+      def valid?
+        validation_errors.empty?
+      end
+
+      def errors
+        validation_errors
+      end
+    end
+
+    class FlowPreviewResponse
+      attr_reader :preview_url, :expires_at
+
+      def initialize(data)
+        preview_data = data['preview'] || {}
+        @preview_url = preview_data['preview_url']
+        @expires_at = preview_data['expires_at']
+      end
+    end
+
+    class FlowEventData
+      attr_reader :version, :screen, :data, :flow_token, :action
+
+      def initialize(data)
+        @version = data['version']
+        @screen = data['screen']
+        @data = data['data'] || {}
+        @flow_token = data['flow_token']
+        @action = data['action']
+      end
+    end
+
+    class FlowScreen
+      attr_reader :id, :title, :data, :terminal, :success, :error_message
+
+      def initialize(data)
+        @id = data['id']
+        @title = data['title']
+        @data = data['data'] || {}
+        @terminal = data['terminal'] || false
+        @success = data['success']
+        @error_message = data['error_message']
+      end
+
+      def terminal?
+        @terminal
+      end
+
+      def success?
+        @success
+      end
+    end
+
     # Utility method to convert snake_case to camelCase for API requests
     def self.to_camel_case(str)
       str.split('_').map.with_index { |word, i| i == 0 ? word : word.capitalize }.join

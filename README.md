@@ -1,6 +1,10 @@
+<div align="center">
+  <img src="kapso-ruby-logo.jpg" alt="Kapso Ruby Client" width="400">
+</div>
+
 # Kapso API Ruby SDK
 
-[![Gem Version](https://badge.fury.io/rb/whatsapp-cloud-api-ruby.svg)](https://badge.fury.io/rb/whatsapp-cloud-api-ruby)
+[![Gem Version](https://badge.fury.io/rb/kapso-client-ruby.svg)](https://badge.fury.io/rb/kapso-client-ruby)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%202.7.0-red.svg)](https://www.ruby-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -23,7 +27,7 @@ A comprehensive Ruby client library for the [WhatsApp Business Cloud API](https:
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'kapso-client-api'
+gem 'kapso-client-ruby'
 ```
 
 And then execute:
@@ -35,7 +39,7 @@ $ bundle install
 Or install it yourself as:
 
 ```bash
-$ gem install kapso-client-api
+$ gem install kapso-client-ruby
 ```
 
 ### Rails Integration
@@ -96,6 +100,162 @@ messages = kapso_client.messages.query(
 
 ## API Reference
 
+### Flows
+
+Create and manage interactive WhatsApp Flows for rich data collection:
+
+#### Create and Deploy a Flow
+
+```ruby
+# Idempotent deployment (recommended)
+deployment = client.flows.deploy(
+  business_account_id: 'your_business_id',
+  name: 'appointment_booking',
+  categories: ['APPOINTMENT_BOOKING'],
+  flow_json: {
+    version: '3.0',
+    screens: [
+      {
+        id: 'APPOINTMENT',
+        title: 'Book Appointment',
+        layout: {
+          type: 'SingleColumnLayout',
+          children: [
+            {
+              type: 'Form',
+              name: 'appointment_form',
+              children: [
+                {
+                  type: 'TextInput',
+                  name: 'customer_name',
+                  label: 'Full Name',
+                  required: true
+                },
+                {
+                  type: 'DatePicker',
+                  name: 'appointment_date',
+                  label: 'Preferred Date',
+                  required: true
+                },
+                {
+                  type: 'Footer',
+                  label: 'Submit',
+                  on_click_action: {
+                    name: 'complete',
+                    payload: {
+                      customer_name: '${form.customer_name}',
+                      appointment_date: '${form.appointment_date}'
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+)
+
+puts "Flow ID: #{deployment[:id]}"
+```
+
+#### Send a Flow Message
+
+```ruby
+require 'securerandom'
+
+client.messages.send_flow(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  flow_id: 'your_flow_id',
+  flow_cta: 'Book Appointment',
+  flow_token: SecureRandom.uuid,
+  header: {
+    type: 'text',
+    text: 'Appointment Booking'
+  },
+  body_text: 'Book your appointment in just a few taps!',
+  footer_text: 'Available slots fill up fast'
+)
+```
+
+#### Handle Flow Webhooks
+
+```ruby
+# In your webhook endpoint
+def handle_flow_webhook(encrypted_request)
+  private_key = OpenSSL::PKey::RSA.new(File.read('private_key.pem'))
+  
+  # Decrypt incoming Flow event
+  flow_event = client.flows.receive_flow_event(
+    encrypted_request: encrypted_request,
+    private_key: private_key
+  )
+  
+  # Process form data
+  case flow_event.action
+  when 'INIT'
+    response_data = {
+      version: flow_event.version,
+      screen: 'APPOINTMENT',
+      data: { available_dates: ['2024-01-15', '2024-01-16'] }
+    }
+  when 'data_exchange'
+    # Save appointment data
+    customer_name = flow_event.data['customer_name']
+    appointment_date = flow_event.data['appointment_date']
+    
+    response_data = {
+      version: flow_event.version,
+      screen: 'SUCCESS',
+      data: { success: true }
+    }
+  end
+  
+  # Encrypt and return response
+  client.flows.respond_to_flow(
+    response_data: response_data,
+    private_key: private_key
+  )
+end
+```
+
+#### Manage Flows
+
+```ruby
+# List all Flows
+flows = client.flows.list(business_account_id: 'business_id')
+
+# Get Flow details
+flow = client.flows.get(flow_id: 'flow_id')
+
+# Update Flow
+client.flows.update(
+  flow_id: 'flow_id',
+  categories: ['APPOINTMENT_BOOKING', 'CUSTOMER_SUPPORT']
+)
+
+# Update Flow JSON
+asset_response = client.flows.update_asset(
+  flow_id: 'flow_id',
+  asset: flow_json_hash
+)
+
+# Publish Flow
+client.flows.publish(flow_id: 'flow_id')
+
+# Get preview URL
+preview = client.flows.preview(flow_id: 'flow_id')
+puts preview.preview_url
+
+# Deprecate Flow
+client.flows.deprecate(flow_id: 'flow_id')
+
+# Delete Flow
+client.flows.delete(flow_id: 'flow_id')
+```
+
 ### Messages
 
 Send various types of messages with the Messages resource:
@@ -150,6 +310,14 @@ client.messages.send_audio(
   audio: { id: 'audio_media_id' }
 )
 
+# Send voice note (OGG/OPUS format recommended)
+client.messages.send_audio(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  audio: { link: 'https://example.com/voice-note.ogg' },
+  voice: true  # Marks as voice note
+)
+
 # Send video
 client.messages.send_video(
   phone_number_id: 'phone_id',
@@ -158,6 +326,67 @@ client.messages.send_video(
     link: 'https://example.com/video.mp4',
     caption: 'Tutorial video'
   }
+)
+```
+
+#### Group Messaging
+
+Send messages to WhatsApp groups by setting `recipient_type: 'group'`:
+
+```ruby
+# Send text to group
+client.messages.send_text(
+  phone_number_id: 'phone_id',
+  to: '120363XXXXXXXXX@g.us',  # Group ID format
+  body: 'Hello everyone!',
+  recipient_type: 'group'
+)
+
+# Send image to group
+client.messages.send_image(
+  phone_number_id: 'phone_id',
+  to: '120363XXXXXXXXX@g.us',
+  image: { link: 'https://example.com/team-photo.jpg' },
+  caption: 'Team photo from our event',
+  recipient_type: 'group'
+)
+```
+
+**Note:** Group messaging works with all message types (text, images, videos, documents, interactive messages, etc.)
+
+**Group ID Format:** `XXXXXXXXX@g.us` (WhatsApp group identifier)
+
+#### Location Messages
+
+```ruby
+# Send location
+client.messages.send_location(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  latitude: 37.7749,
+  longitude: -122.4194,
+  name: 'Our Office',
+  address: '123 Main St, San Francisco, CA'
+)
+
+# Request user's location
+client.messages.send_interactive_location_request(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  body_text: 'Please share your location for delivery',
+  footer_text: 'Your privacy is important to us'
+)
+
+# Request location with header
+client.messages.send_interactive_location_request(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  header: {
+    type: 'image',
+    image: { link: 'https://example.com/map-icon.png' }
+  },
+  body_text: 'Share your location to find the nearest store',
+  footer_text: 'Tap to share'
 )
 ```
 
@@ -211,6 +440,78 @@ client.messages.send_interactive_list(
   ]
 )
 ```
+
+#### Interactive CTA URL Messages
+
+Send messages with Call-to-Action buttons that open URLs:
+
+```ruby
+# With image header
+client.messages.send_interactive_cta_url(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  header: {
+    type: 'image',
+    image: { link: 'https://example.com/banner.jpg' }
+  },
+  body_text: 'Get 25% off your first purchase!',
+  display_text: 'Shop Now',  # Max 20 characters
+  url: 'https://shop.example.com?utm_source=whatsapp',
+  footer_text: 'Limited time offer'
+)
+
+# With text header
+client.messages.send_interactive_cta_url(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  header: {
+    type: 'text',
+    text: 'Special Offer'
+  },
+  body_text: 'Join our exclusive members club!',
+  display_text: 'Join Now',
+  url: 'https://members.example.com/signup'
+)
+
+# With video or document header
+client.messages.send_interactive_cta_url(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  header: {
+    type: 'video',
+    video: { link: 'https://example.com/demo.mp4' }
+  },
+  body_text: 'Watch our product in action!',
+  display_text: 'Learn More',
+  url: 'https://example.com/product'
+)
+```
+
+**Validations:**
+- `body_text`: Max 1024 characters
+- `display_text`: Max 20 characters
+- `url`: Must be valid HTTP/HTTPS URL
+- `footer_text`: Max 60 characters (optional)
+- `header`: Supports text, image, video, or document
+
+#### Catalog Messages
+
+Send your product catalog directly in WhatsApp:
+
+```ruby
+client.messages.send_interactive_catalog_message(
+  phone_number_id: 'phone_id',
+  to: '+1234567890',
+  body_text: 'Browse our entire product catalog!',
+  thumbnail_product_retailer_id: 'SKU-001',  # Product SKU for thumbnail
+  footer_text: 'Tap to explore'
+)
+```
+
+**Parameters:**
+- `body_text`: Max 1024 characters
+- `thumbnail_product_retailer_id`: Product SKU to display as thumbnail (required)
+- `footer_text`: Max 60 characters (optional)
 
 #### Template Messages
 
@@ -741,7 +1042,7 @@ This gem is available as open source under the terms of the [MIT License](https:
 
 - 📖 [WhatsApp Cloud API Documentation](https://developers.facebook.com/docs/whatsapp/cloud-api/)
 - 🌐 [Kapso Platform](https://kapso.ai/) for enhanced features
-- 🐛 [Issue Tracker](https://github.com/PabloB07/whatsapp-cloud-api-ruby/issues)
+- 🐛 [Issue Tracker](https://github.com/PabloB07/kapso-client-ruby/issues)
 - 📧 Email: support@kapso.ai
 
 ## Changelog

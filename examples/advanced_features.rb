@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
-require 'KapsoClientRuby'
+require 'kapso-client-ruby'
+require 'dotenv'
+
+Dotenv.load
 
 puts "=== Advanced Features with Kapso Proxy ==="
 

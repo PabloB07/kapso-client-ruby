@@ -326,5 +326,24 @@ module KapsoClientRuby
 
     class ConfigurationError < StandardError; end
     class ValidationError < StandardError; end
+    
+    # Flow-specific errors
+    class FlowDecryptionError < StandardError
+      attr_reader :original_error
+      
+      def initialize(message, original_error = nil)
+        @original_error = original_error
+        super(message)
+      end
+    end
+    
+    class FlowEncryptionError < StandardError
+      attr_reader :original_error
+      
+      def initialize(message, original_error = nil)
+        @original_error = original_error
+        super(message)
+      end
+    end
   end
 end
