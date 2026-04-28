@@ -92,6 +92,91 @@ module KapsoClientRuby
         Types::GraphSuccessResponse.new(response)
       end
 
+      # Build a template send payload with typed parameters (for sending templates)
+      # Validates structure and returns components in Meta wire format
+      #
+      # @param name [String] Template name
+      # @param language [String] Template language code (e.g., 'en_US')
+      # @param header [Hash, nil] Header parameters with :type and value
+      # @param body [Array, nil] Body parameters array
+      # @param buttons [Array, nil] Button parameters array
+      # @return [Hash] Template payload ready to send
+      #
+      # @example
+      #   payload = client.templates.build_template_send_payload(
+      #     name: 'order_confirmation',
+      #     language: 'en_US',
+      #     body: [
+      #       { type: 'text', text: 'Jessica', parameter_name: 'customerName' },
+      #       { type: 'text', text: 'SKBUP2-4CPIG9', parameter_name: 'orderId' }
+      #     ],
+      #     buttons: [
+      #       {
+      #         type: 'button',
+      #         sub_type: 'flow',
+      #         index: 0,
+      #         parameters: [{ type: 'action', action: { flow_token: 'FT_123' } }]
+      #       }
+      #     ]
+      #   )
+      def build_template_send_payload(name:, language:, header: nil, body: nil, buttons: nil)
+        validate_template_send_input(name: name, language: language, header: header, body: body, buttons: buttons)
+
+        components = []
+
+        if header
+          components << { type: 'header', parameters: [normalize_parameter(header)] }
+        end
+
+        if body && !body.empty?
+          components << { type: 'body', parameters: body.map { |p| normalize_parameter(p) } }
+        end
+
+        if buttons && !buttons.empty?
+          buttons.each do |btn|
+            components << normalize_button_parameter(btn)
+          end
+        end
+
+        {
+          name: name,
+          language: { code: language },
+          components: components
+        }
+      end
+
+      # Build a template payload from raw Meta-style components
+      # Accepts components with snake_case or camelCase keys and normalizes them
+      #
+      # @param name [String] Template name
+      # @param language [String, Hash] Language code or { code: 'en_US', policy: 'deterministic' }
+      # @param components [Array] Meta-style components array
+      # @return [Hash] Template payload ready to send
+      #
+      # @example
+      #   payload = client.templates.build_template_payload(
+      #     name: 'order_confirmation',
+      #     language: 'en_US',
+      #     components: [
+      #       { type: 'body', parameters: [{ type: 'text', text: 'Jessica', parameter_name: 'customer_name' }] }
+      #     ]
+      #   )
+      def build_template_payload(name:, language:, components:)
+        lang_config = if language.is_a?(Hash)
+                       language
+                     else
+                       { code: language }
+                     end
+
+        normalized_components = components.map { |comp| normalize_component(comp) }
+
+        {
+          name: name,
+          language: lang_config,
+          components: normalized_components
+        }
+      end
+
       # Template builder helpers
       def build_text_component(text:, example: nil)
         component = { type: 'BODY', text: text }
@@ -262,6 +347,12 @@ module KapsoClientRuby
         end
       end
 
+      def validate_template_send_input(name:, language:, header: nil, body: nil, buttons: nil)
+        raise ArgumentError, 'Template name cannot be empty' if name.nil? || name.strip.empty?
+        raise ArgumentError, 'Language cannot be empty' if language.nil? || language.strip.empty?
+        raise ArgumentError, 'build_template_send_payload does not accept raw components; use build_template_payload for Meta-style payloads' if body && body.is_a?(Hash) && body[:type]
+      end
+
       def normalize_components(components)
         components.map { |component| normalize_component(component) }
       end
@@ -277,6 +368,27 @@ module KapsoClientRuby
         # Ensure button keys are strings for API compatibility
         normalized = {}
         button.each { |key, value| normalized[key.to_s] = value }
+        normalized
+      end
+
+      def normalize_parameter(param)
+        # Normalize parameter, converting parameter_name to parameterName if needed
+        normalized = {}
+        param.each do |key, value|
+          key_str = key.to_s
+          normalized[key_str] = value
+        end
+        normalized
+      end
+
+      def normalize_button_parameter(btn)
+        normalized = {}
+        btn.each do |key, value|
+          key_str = key.to_s
+          # Convert sub_type to subType
+          key_str = 'subType' if key_str == 'sub_type'
+          normalized[key_str] = value
+        end
         normalized
       end
     end

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'set'
+
 module KapsoClientRuby
   module Types
     # Message status types
@@ -310,8 +312,35 @@ module KapsoClientRuby
       end
     end
 
-    # Utility method to convert snake_case to camelCase for API requests
-    def self.to_camel_case(str)
+    # Build Kapso fields string for queries
+      # Returns a string like "kapso(default)" or "kapso(flow_response,flow_token)"
+      #
+      # @param fields [Array<String>, nil] List of Kapso fields to include, or nil for all defaults
+      # @return [String] Fields parameter value
+      #
+      # @example Get all default Kapso fields
+      #   fields = KapsoClientRuby::Types.build_kapso_fields
+      #   # => "kapso(default)"
+      #
+      # @example Get specific fields
+      #   fields = KapsoClientRuby::Types.build_kapso_fields(['flow_response', 'flow_token'])
+      #   # => "kapso(flow_response,flow_token)"
+      #
+      # @example Omit Kapso fields
+      #   fields = KapsoClientRuby::Types.build_kapso_fields([])
+      #   # => "kapso()"
+      def self.build_kapso_fields(fields = nil)
+        if fields.nil?
+          'kapso(default)'
+        elsif fields.empty?
+          'kapso()'
+        else
+          "kapso(#{fields.join(',')})"
+        end
+      end
+
+      # Utility method to convert snake_case to camelCase for API requests
+      def self.to_camel_case(str)
       str.split('_').map.with_index { |word, i| i == 0 ? word : word.capitalize }.join
     end
 
